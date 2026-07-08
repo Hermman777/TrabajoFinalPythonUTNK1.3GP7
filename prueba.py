@@ -16,23 +16,30 @@ Cumple con:
 """
 
 import os
+import sys
 from openpyxl import Workbook, load_workbook
 
 NOMBRE_ARCHIVO = "gimnasio_datos.xlsx"
-RUTA_EXCEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), NOMBRE_ARCHIVO)
 
+def obtener_carpeta_base():
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    else:
+        return os.path.dirname(os.path.abspath(__file__))
+
+RUTA_EXCEL = os.path.join(obtener_carpeta_base(), NOMBRE_ARCHIVO)
 HOJA_SOCIOS = "Socios"
 HOJA_ACTIVIDADES = "Actividades"
 HOJA_INSCRIPCIONES = "Inscripciones"
 HOJA_ASISTENCIAS = "Asistencias"
 
-ENCABEZADOS_SOCIOS = ["DNI", "Nombre", "Membresia", "CostoCuota", "Activo", "CuotasPagadas"]
+ENCABEZADOS_SOCIOS = ["DNI", "Nombre", "Membresia", "costoCuota", "Activo", "cuotasPagadas"]
 ENCABEZADOS_ACTIVIDADES = ["Nombre", "Cupo"]
 ENCABEZADOS_INSCRIPCIONES = ["DNI", "Actividad"]
 ENCABEZADOS_ASISTENCIAS = ["DNI", "Actividad"]
 
 TIPOS_MEMBRESIA = {
-    "1": {"nombre": "Básica", "costo": 5000},
+    "1": {"nombre": "Basica", "costo": 5000},
     "2": {"nombre": "Full",   "costo": 8000},
     "3": {"nombre": "Estudiante (promo)", "costo": 4000},
 }
@@ -46,7 +53,7 @@ total_recaudado = 0.0
 contador_asistencias = 0  
 
 def crear_archivo_excel():
-    """Crea el archivo Excel vacio la primera vez que se usa el sistema"""
+    """Crea el archivo excel vacio la primera vez que se usa el sistema"""
     libro = Workbook()
     hoja = libro.active
     hoja.title = HOJA_SOCIOS
@@ -58,7 +65,7 @@ def crear_archivo_excel():
     hoja = libro.create_sheet(HOJA_ASISTENCIAS)
     hoja.append(ENCABEZADOS_ASISTENCIAS)
     libro.save(RUTA_EXCEL)
-    print(f"Primer uso detectado: se creo el archivo '{NOMBRE_ARCHIVO}'")
+    print(f"Primer uso detectado: se creo el archivo '{NOMBRE_ARCHIVO}' para guardar los datos")
 
 def cargar_datos_desde_excel():
     """Lee el excel existente y reconstruye todas las estructuras en memoria"""
@@ -103,7 +110,7 @@ def cargar_datos_desde_excel():
         asistencias_por_socio[dni] = asistencias_por_socio.get(dni, 0) + 1
         asistencias_por_actividad[nombre_actividad] = asistencias_por_actividad.get(nombre_actividad, 0) + 1
         contador_asistencias += 1
-    print(f"Datos cargados dee '{NOMBRE_ARCHIVO}': {len(socios)} socio "
+    print(f"datos cargados desde '{NOMBRE_ARCHIVO}': {len(socios)} socio, "
           f"{len(actividades)} actividad, {contador_asistencias} asistencia registradas")
 
 def guardar_datos():
@@ -132,9 +139,9 @@ def guardar_datos():
         libro.save(RUTA_EXCEL)
     except PermissionError:
         print(f"Error no se pudo guardar '{NOMBRE_ARCHIVO}'"
-              f"Cerra el archivo si lo tenes abierto y intenta denuevo")
+              f"Cerra el archivo si lo tenes abierto en excel e intenta denuevo")
     except Exception as error:
-        print(f"Error al guardar los datos: {error}")
+        print(f"error inesperado al guardar los datos: {error}")
 
 def inicializar_sistema():
     """Al arrancar el programa: crea el excel si es la primera vez o lo carga si ya existe"""
@@ -144,8 +151,8 @@ def inicializar_sistema():
         else:
             cargar_datos_desde_excel()
     except Exception as error:
-        print(f"Error al inicializar la base de datos ({error} "
-              f"Se continuara con datos vacos en esta sesion")
+        print(f"Error al inicializar la base de datos {error} "
+              f"Se continuara con datos vacios en esta sesion")
 
 def leer_texto_no_vacio(mensaje):
     """Pide un texto por consola hasta que no este vacio"""
@@ -169,7 +176,7 @@ def leer_dni():
                 raise ValueError("El DNI debe tener entre y 9 digitos")
             return dni
         except ValueError as error:
-            print(f"Error {error} Intente nuevamente")
+            print(f"Error {error} intente nuevamente")
 
 def leer_entero_positivo(mensaje):
     """Pide un numero entero positivo, manejando errores de conversion"""
@@ -180,25 +187,27 @@ def leer_entero_positivo(mensaje):
                 raise ValueError("El numero debe ser mayor a cero")
             return valor
         except ValueError as error:
-            print(f"Error dato invalido ({error}) intente nuevamente")
+            print(f"Error dato invalido {error} intente nuevamente")
 
 def leer_opcion(mensaje, opciones_validas):
-    """Pide una opcion de menu y valida que"""
+    """Pide una opcion de menu y valida que exista dentro de las opciones permitidas"""
     while True:
         opcion = input(mensaje).strip()
         if opcion in opciones_validas:
             return opcion
-        print(f"opcion invalida, las opciones validas son: {', '.join(opciones_validas)}")
+        print(f"Opcion invalida, las opciones validas son: {', '.join(opciones_validas)}")
+
 
 def buscar_socio_por_dni(dni):
-    """devuelve el diccionario del socio si existe, o ninguna si no fue encontrado"""
+    """Devuelve el diccionario del socio si existe o ninguna si no fue encontrado"""
     for socio in socios:
         if socio["dni"] == dni:
             return socio
     return None
 
+
 def buscar_actividad_por_nombre(nombre):
-    """Devuelve el diccionario de la actividad si existe, o ninguna si no fue encontrada"""
+    """Devuelve el diccionario de la actividad si existe o ninguna si no fue encontrada"""
     for actividad in actividades:
         if actividad["nombre"].lower() == nombre.lower():
             return actividad
@@ -229,7 +238,7 @@ def registrar_socio():
     print(f"Socio '{nombre}' registrado con exito y guardado en '{NOMBRE_ARCHIVO}'")
 
 def dar_baja_socio():
-    """Da de baja a un socio"""
+    """Da de baja a un socio existente"""
     print("\nBaja de socio")
     if len(socios) == 0:
         print("No hay socios cargados todavia")
@@ -249,7 +258,7 @@ def listar_socios():
     """Lista todos los socios y cuenta cuantos estan activos/inactivos"""
     print("\nListado de socios")
     if len(socios) == 0:
-        print("No hay socios cargados todavaa")
+        print("No hay socios cargados todavia")
         return
     contador_activos = 0
     contador_inactivos = 0
@@ -259,20 +268,20 @@ def listar_socios():
             contador_activos += 1
         else:
             contador_inactivos += 1
-        print(f"  DNI: {socio['dni']} | {socio['nombre']} | "
-              f"Membresia: {socio['membresia']} | Estado: {estado} | "
+        print(f"DNI: {socio['dni']} {socio['nombre']} "
+              f"Membresia: {socio['membresia']} Estado: {estado} "
               f"Cuotas pagadas: {socio['cuotas_pagadas']}")
-    print(f"\nTotal socios: {len(socios)} (Activos: {contador_activos}, Inactivos: {contador_inactivos})")
+    print(f"\nTotal socios: {len(socios)} Activos: {contador_activos}, inactivos: {contador_inactivos}")
 
 def imprimir_socios(lista_filtrada):
-    """imprime una lista de socios ya filtrada, junto con la cantidad de coincidencias"""
+    """Imprime una lista de socios ya filtrada junto con la cantidad de coincidencias"""
     if len(lista_filtrada) == 0:
-        print("No se encontraron socios que cumplan las condiciones")
+        print("No se encontraron socios que cumplan ese filtro")
         return
     for socio in lista_filtrada:
-        estado = "Activo" if socio["activo"] else "Inactivo"
-        print(f"  DNI: {socio['dni']} {socio['nombre']} "
-              f"Membresia: {socio['membresia']} Estado: {estado} "
+        estado = "Activo" if socio["activo"] else "inactivo"
+        print(f"DNI: {socio['dni']} {socio['nombre']}"
+              f"Membresia: {socio['membresia']} | Estado: {estado}"
               f"Cuotas pagadas: {socio['cuotas_pagadas']}")
     print(f"\nCoincidencias encontradas: {len(lista_filtrada)}")
 
@@ -290,8 +299,8 @@ def filtrar_por_membresia():
 
 def filtrar_por_estado():
     """Filtra y muestra los socios activos o inactivos"""
-    print("\nfiltrar socios por estado")
-    print("1 activos")
+    print("\nFiltrar socios por estado")
+    print("1 asctivos")
     print("2 inactivos")
     opcion = leer_opcion("Elija una opcion: ", ["1", "2"])
     buscar_activo = (opcion == "1")
@@ -306,7 +315,7 @@ def filtrar_por_actividad():
         print("No hay actividades cargadas todavia")
         return
     for actividad in actividades:
-        print(f"  - {actividad['nombre']}")
+        print(f"{actividad['nombre']}")
     nombre_actividad = leer_texto_no_vacio("Ingrese el nombre de la actividad: ")
     actividad = buscar_actividad_por_nombre(nombre_actividad)
     if actividad is None:
@@ -323,16 +332,16 @@ def registrar_pago_cuota():
     dni = leer_dni()
     socio = buscar_socio_por_dni(dni)
     if socio is None:
-        print("Error no existe un socio con ese DNI")
+        print("Error no existe un socio con ese DNI.")
         return
     if not socio["activo"]:
-        print("Error el socio está inactivo, no puede pagar cuota")
+        print("Error el socio esta inactivo, no puede pagar cuota")
         return
     socio["cuotas_pagadas"] += 1
     total_recaudado += socio["costo_cuota"]
     guardar_datos()
     print(f"Pago registrado {socio['nombre']} pago ${socio['costo_cuota']} "
-          f"{socio['membresia']} total de cuotas pagadas: {socio['cuotas_pagadas']}")
+          f"{socio['membresia']}, Total de cuotas pagadas: {socio['cuotas_pagadas']}.")
 
 def ver_estado_cuotas():
     """Muestra el estado de cuotas de cada socio y el total recaudado"""
@@ -341,14 +350,14 @@ def ver_estado_cuotas():
         print("No hay socios cargados todavia")
         return
     for socio in socios:
-        print(f"  {socio['nombre']} (DNI {socio['dni']}) - "
+        print(f"  {socio['nombre']} DNI {socio['dni']} "
               f"Cuotas pagadas: {socio['cuotas_pagadas']} Membresia: {socio['membresia']}")
-    print(f"\nTotal recaudado acumulado: {total_recaudado:.2f}")
+    print(f"\nTotal recaudado acumulado: ${total_recaudado:.2f}")
 
 def alta_actividad():
-    """Da de alta una nueva actividad con un cupo maximo de inscriptos"""
-    print("\nAlta de actividad")
-    nombre = leer_texto_no_vacio("Nombre de la actividad")
+    """Da de alta una nueva actividad con un cupo maximo de inscriptos."""
+    print("\n--- Alta de actividad ---")
+    nombre = leer_texto_no_vacio("Nombre de la actividad: ")
     if buscar_actividad_por_nombre(nombre) is not None:
         print("Error ya existe una actividad con ese nombre")
         return
@@ -359,7 +368,7 @@ def alta_actividad():
     print(f"Actividad '{nombre}' creada con cupo para {cupo} socios")
 
 def inscribir_socio_actividad():
-    """Inscribe a un socio activo en una actividad, validando cupo disponible"""
+    """Inscribe a un socio activo en una actividad"""
     print("\nInscripcion a actividad")
     if len(actividades) == 0:
         print("No hay actividades cargadas todavia")
@@ -367,10 +376,10 @@ def inscribir_socio_actividad():
     dni = leer_dni()
     socio = buscar_socio_por_dni(dni)
     if socio is None:
-        print("Error: no existe un socio con ese DNI")
+        print("Error no existe un socio con ese DNI")
         return
     if not socio["activo"]:
-        print("Error el socio esta inactivo, no puede inscribirse.")
+        print("Error el socio esta inactivo no puede inscribirse")
         return
     print("Actividades disponibles:")
     for actividad in actividades:
@@ -386,7 +395,7 @@ def inscribir_socio_actividad():
     else:
         actividad["inscriptos"].append(dni)
         guardar_datos()
-        print(f"  -> {socio['nombre']} fue inscripto en '{actividad['nombre']}'.")
+        print(f"{socio['nombre']} fue inscripto en '{actividad['nombre']}'")
 
 def listar_actividades():
     """Lista todas las actividades con su ocupacion de cupo"""
@@ -396,7 +405,7 @@ def listar_actividades():
         return
     for actividad in actividades:
         ocupacion = len(actividad["inscriptos"])
-        print(f"  {actividad['nombre']} Ocupacion: {ocupacion}/{actividad['cupo']}")
+        print(f"  {actividad['nombre']}, ocupacion: {ocupacion}/{actividad['cupo']}")
 
 def registrar_asistencia():
     """Registra la asistencia de un socio a una actividad en la que esta inscripto"""
@@ -405,12 +414,12 @@ def registrar_asistencia():
     dni = leer_dni()
     socio = buscar_socio_por_dni(dni)
     if socio is None:
-        print("Error: no existe un socio con ese DNI")
+        print("Error no existe un socio con ese dni")
         return
     if not socio["activo"]:
         print("Error el socio esta inactivo")
         return
-    nombre_actividad = leer_texto_no_vacio("ingrese la actividad a la que asiste")
+    nombre_actividad = leer_texto_no_vacio("Ingrese la actividad a la que asiste: ")
     actividad = buscar_actividad_por_nombre(nombre_actividad)
     if actividad is None:
         print("Error esa actividad no existe")
@@ -423,10 +432,10 @@ def registrar_asistencia():
     asistencias_por_actividad[actividad["nombre"]] = asistencias_por_actividad.get(actividad["nombre"], 0) + 1
     contador_asistencias += 1
     guardar_datos()
-    print(f"Asistencia registrada para {socio['nombre']} en '{actividad['nombre']}'.")
+    print(f"Asistencia registrada para {socio['nombre']} en '{actividad['nombre']}'")
 
 def ver_estadisticas_asistencia():
-    """Muestra estadisticas básicas de concurrencia: totales y promedio por actividad"""
+    """Muestra estadisticas basicas de concurrencia"""
     print("\nEstadisticas de asistencia")
     if contador_asistencias == 0:
         print("Todavia no se registraron asistencias")
@@ -450,7 +459,7 @@ def menu_socios():
         print("1 registrar socio")
         print("2 dar de baja socio")
         print("3 listar todos los socios")
-        print("4 filtrar socios (membresia /estado/actividad)")
+        print("4 filtrar socios (membresia / estado / actividad)")
         print("0 volver al menu principal")
         opcion = leer_opcion("Seleccione una opcion: ", ["0", "1", "2", "3", "4"])
         if opcion == "1":
@@ -466,7 +475,7 @@ def menu_socios():
 
 def menu_filtros():
     while True:
-        print("\nfiltrar socios")
+        print("\nFiltrar socios")
         print("1 por tipo de membresia")
         print("2 por estado (activo/inactivo)")
         print("3 por actividad")
@@ -483,7 +492,7 @@ def menu_filtros():
 
 def menu_cuotas():
     while True:
-        print("\ngestion de cuotas")
+        print("\ngestion de coutas")
         print("1 registrar pago de cuota")
         print("2 ver estado de cuotas")
         print("0 volver al menu principal")
@@ -514,7 +523,7 @@ def menu_actividades():
 
 def menu_asistencia():
     while True:
-        print("\ncontrol de asistencia")
+        print("\ngestion de asistencia")
         print("1 registrar asistencia")
         print("2 ver estadisticas de asistencia")
         print("0 volver al menu principal")
@@ -527,7 +536,7 @@ def menu_asistencia():
             break
 
 def menu_principal():
-    """Bucle principal del sistema, atrapa errores inesperados para que el programa no se cierre"""
+    """Bucle principal del sistema"""
     while True:
         print("gestion de gimnasio")
         print(f" (datos guardados en: {NOMBRE_ARCHIVO})")
@@ -550,13 +559,13 @@ def menu_principal():
                 print("\nSaliendo del sistema")
                 break
         except Exception as error:
-            print(f"Ocurrio un error inesperado: {error} volviendo al menu principal")
+            print(f"Ocurrio un error inesperado: {error} bolviendo al menu")
 
 if __name__ == "__main__":
     try:
         inicializar_sistema()
         menu_principal()
     except KeyboardInterrupt:
-        print("\n\nPrograma interrumpido por el usuario, cerrando")
+        print("\n\nPrograma interrumpido por el usuario")
     except EOFError:
-        print("\n\nNo se pudo seguir leyendo datos de entrada, cerrando el programa")
+        print("\n\nNo se pudo seguir leyendo datos de entrada cerrando el programa")
